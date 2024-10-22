@@ -8,7 +8,7 @@ site_prefix = 'http://books.toscrape.com/'
 
 def get_book_data(url, category):
     page = rq.get(url)
-    soup = BeautifulSoup(page.text, 'html.parser')
+    soup = BeautifulSoup(page.text, 'html.parser', from_encoding= 'utf-8')
 
     title = soup.find('h1').text
     thumbnail = soup.find('img')
@@ -16,13 +16,17 @@ def get_book_data(url, category):
     trs = soup.find_all('tr')
     for tr in trs:
         th = tr.find('th').text
+        
         td = tr.find('td').text
+        td = td[1: len(th)]
         if th == 'UPC':
             upc = td
         elif th == 'Price (excl. tax)':
             price_exc = td
+            print(td)
         elif th == 'Price (incl. tax)':
             price_inc = td
+            print(td)
         elif th == 'Availability':
             num_available = td
     
