@@ -7,7 +7,7 @@ import os
 
 site_to_scrape = 'http://books.toscrape.com/index.html'
 site_prefix = 'http://books.toscrape.com/'
-output_dir = 'C:/PERNET_Victor_Python_Projet2/'
+output_dir = 'C:/00_Scraped_Data/'
 
 
 def get_book_data(url, category):
@@ -126,16 +126,16 @@ if __name__ == "__main__":
     categories = sides.find_all('a')
 
     # To get only books from a single category /!\ this will overwrite existing csv and images at default extract location
-    all_books_datas.extend(get_books_from_category(
-            'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
+    # all_books_datas.extend(get_books_from_category(
+    #         'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
 
     # we use len to start from index 1 and skip the "Books" category at index 0
-    # for i in range(1, len(categories)):
-    #     category = categories[i]
+    for i in range(1, len(categories)):
+        category = categories[i]
 
-    #     url = site_prefix + category['href']
-    #     name = category.text.strip()
-    #     all_books_datas.extend(get_books_from_category(url, name))
+        url = site_prefix + category['href']
+        name = category.text.strip()
+        all_books_datas.extend(get_books_from_category(url, name))
 
     print("book amount : ", len(all_books_datas))
 
