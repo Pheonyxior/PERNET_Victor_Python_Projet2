@@ -29,10 +29,10 @@ def get_book_data(url, category):
     
     response = rq.get(thumbnail, stream=True)
 
-    file_name = title
-    file_name = ''.join(e for e in file_name if e.isalnum())
+    file_name = thumbnail
+    file_name = os.path.basename(file_name)
 
-    with open(os.path.join(category_dir, file_name + '.jpg'), 'wb') as out_file:
+    with open(os.path.join(category_dir, file_name), 'wb') as out_file:
         shutil.copyfileobj(response.raw, out_file)
 
     del response
@@ -52,7 +52,7 @@ def get_book_data(url, category):
         elif th == 'Availability':
             num_available = td
     
-    description = soup.find('meta', attrs = {'name': 'description'}).get('content')
+    description = soup.find('meta', attrs = {'name': 'description'}).get('content').strip()
     
     review_rating = soup.find_all('p')[2]
     if review_rating.has_attr('class'):
@@ -126,16 +126,16 @@ if __name__ == "__main__":
     categories = sides.find_all('a')
 
     # To get only books from a single category /!\ this will overwrite existing csv and images at default extract location
-    # all_books_datas.extend(get_books_from_category(
-    #         'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
+    all_books_datas.extend(get_books_from_category(
+            'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
 
     # we use len to start from index 1 and skip the "Books" category at index 0
-    for i in range(1, len(categories)):
-        category = categories[i]
+    # for i in range(1, len(categories)):
+    #     category = categories[i]
 
-        url = site_prefix + category['href']
-        name = category.text.strip()
-        all_books_datas.extend(get_books_from_category(url, name))
+    #     url = site_prefix + category['href']
+    #     name = category.text.strip()
+    #     all_books_datas.extend(get_books_from_category(url, name))
 
     print("book amount : ", len(all_books_datas))
 
