@@ -1,6 +1,6 @@
 # PERNET_Victor_Python_Projet2
-
 Instructions d'utilisation du script de scraping:
+    
     - Cloner le dépôt.
     - Ouvrez un terminal à l'emplacement du dépôt.
     - Installez les librairies nécessaires en rentrant dans le terminal :
