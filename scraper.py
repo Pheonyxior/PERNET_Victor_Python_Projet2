@@ -9,14 +9,15 @@ site_to_scrape = 'http://books.toscrape.com/index.html'
 site_prefix = 'http://books.toscrape.com/'
 output_dir = 'C:/PERNET_Victor_Python_Projet2/'
 
+
 def get_book_data(url, category):
     page = rq.get(url)
-    soup = BeautifulSoup(page.text, 'html.parser')
-
+    page.encoding = 'utf-8'
+    soup = BeautifulSoup(page.text, 'html.parser', from_encoding= 'utf-8')
+    
     title = soup.find('h1').text
     thumbnail = urljoin(site_prefix, soup.find('img')['src']) 
     print(title)
-    print(thumbnail)
     
     # handles saving the book covers
     cover_dir = output_dir + 'covers/'
@@ -30,30 +31,28 @@ def get_book_data(url, category):
 
     file_name = title
     file_name = ''.join(e for e in file_name if e.isalnum())
-    print("file_name: ", file_name)
-    
+
     with open(os.path.join(category_dir, file_name + '.jpg'), 'wb') as out_file:
         shutil.copyfileobj(response.raw, out_file)
-        print("shutil ", title)
 
     del response
     
     trs = soup.find_all('tr')
     for tr in trs:
         th = tr.find('th').text
-        
         td = tr.find('td').text
-        td = td[1: len(th)]
         if th == 'UPC':
             upc = td
         elif th == 'Price (excl. tax)':
+            #td = td[1: len(th)] Uncomment to remove £ sign
             price_exc = td
         elif th == 'Price (incl. tax)':
+            #td = td[1: len(th)] Uncomment to remove £ sign
             price_inc = td
         elif th == 'Availability':
             num_available = td
     
-    description = soup.find('meta', attrs = {'name': 'description'}).get('content').strip()
+    description = soup.find('meta', attrs = {'name': 'description'}).get('content')
     
     review_rating = soup.find_all('p')[2]
     if review_rating.has_attr('class'):
@@ -71,11 +70,10 @@ def get_book_data(url, category):
             'review_rating': review_rating,
             'image_url': thumbnail
         }
-    #print(book_data)
     return book_data
 
+
 def get_books_from_page(url, soup):
-    ### Variables locals ???
     pods = soup.find_all('article', attrs = {'class': 'product_pod'})
     book_urls = []
     for pod in pods:
@@ -84,6 +82,7 @@ def get_books_from_page(url, soup):
             href = urljoin(url, href)
         book_urls.append(href)
     return book_urls
+
 
 def get_books_from_category(url, category):
     book_datas = []
@@ -126,10 +125,11 @@ if __name__ == "__main__":
     sides = soup.find('div', attrs= {'class': 'side_categories'})
     categories = sides.find_all('a')
 
+    # To get only books from a single category /!\ this will overwrite existing csv and images at default extract location
     # all_books_datas.extend(get_books_from_category(
-    #     'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
+    #         'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
 
-    #we use len to start from index 1 and skip the "Books" category at index 0
+    # we use len to start from index 1 and skip the "Books" category at index 0
     for i in range(1, len(categories)):
         category = categories[i]
 
@@ -137,9 +137,9 @@ if __name__ == "__main__":
         name = category.text.strip()
         all_books_datas.extend(get_books_from_category(url, name))
 
-    print("book number : ", len(all_books_datas))
+    print("book amount : ", len(all_books_datas))
 
-    with open(os.path.join(output_dir, "test.csv"), mode="w", encoding= 'utf-8') as csv_file:
+    with open(os.path.join(output_dir, "Book Datas.csv"), mode="w",newline= '', encoding= 'utf-8') as csv_file:
 
         data = {
             'product_page_url': 'product_page_url', 
