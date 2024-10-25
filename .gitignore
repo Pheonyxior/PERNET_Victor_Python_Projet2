@@ -1,4 +1,4 @@
 \documentation
 \env
 .~lock.test.csv#
-.test.csv
+*.test.csv

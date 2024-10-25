@@ -2,16 +2,41 @@ import requests as rq
 from bs4 import BeautifulSoup
 import csv
 from urllib.parse import urljoin
+import shutil
+import os
 
 site_to_scrape = 'http://books.toscrape.com/index.html'
 site_prefix = 'http://books.toscrape.com/'
+output_dir = 'C:/PERNET_Victor_Python_Projet2/'
 
 def get_book_data(url, category):
     page = rq.get(url)
-    soup = BeautifulSoup(page.text, 'html.parser', from_encoding= 'utf-8')
+    soup = BeautifulSoup(page.text, 'html.parser')
 
     title = soup.find('h1').text
-    thumbnail = soup.find('img')
+    thumbnail = urljoin(site_prefix, soup.find('img')['src']) 
+    print(title)
+    print(thumbnail)
+    
+    # handles saving the book covers
+    cover_dir = output_dir + 'covers/'
+    if not os.path.exists(cover_dir):
+        os.makedirs(cover_dir)
+    category_dir = cover_dir + category + '/'
+    if not os.path.exists(category_dir):
+        os.makedirs(category_dir)
+    
+    response = rq.get(thumbnail, stream=True)
+
+    file_name = title
+    file_name = ''.join(e for e in file_name if e.isalnum())
+    print("file_name: ", file_name)
+    
+    with open(os.path.join(category_dir, file_name + '.jpg'), 'wb') as out_file:
+        shutil.copyfileobj(response.raw, out_file)
+        print("shutil ", title)
+
+    del response
     
     trs = soup.find_all('tr')
     for tr in trs:
@@ -23,10 +48,8 @@ def get_book_data(url, category):
             upc = td
         elif th == 'Price (excl. tax)':
             price_exc = td
-            print(td)
         elif th == 'Price (incl. tax)':
             price_inc = td
-            print(td)
         elif th == 'Availability':
             num_available = td
     
@@ -46,8 +69,9 @@ def get_book_data(url, category):
             'product_description': description, 
             'category': category,
             'review_rating': review_rating,
-            'image_url': thumbnail['src']
+            'image_url': thumbnail
         }
+    #print(book_data)
     return book_data
 
 def get_books_from_page(url, soup):
@@ -72,10 +96,11 @@ def get_books_from_category(url, category):
     
     # Loops as long as a next button for the next page is found
     while next:
-        print(current_url)
+        print(category)
         for url in get_books_from_page(current_url, soup):
             book_datas.append(get_book_data(url, category))
-        
+        print('\n')
+
         href = next.find('a')['href']
         current_url = current_url.replace(suf, href)
         page = rq.get(current_url)
@@ -84,7 +109,7 @@ def get_books_from_category(url, category):
         next = soup.find('li', class_ = 'next')
 
     # Executes at least once for the page where no next is found, meaning the last one.
-    print(current_url)
+    print(category)
     for url in get_books_from_page(current_url, soup):
         book_datas.append(get_book_data(url, category))
 
@@ -101,6 +126,9 @@ if __name__ == "__main__":
     sides = soup.find('div', attrs= {'class': 'side_categories'})
     categories = sides.find_all('a')
 
+    # all_books_datas.extend(get_books_from_category(
+    #     'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
+
     #we use len to start from index 1 and skip the "Books" category at index 0
     for i in range(1, len(categories)):
         category = categories[i]
@@ -111,7 +139,7 @@ if __name__ == "__main__":
 
     print("book number : ", len(all_books_datas))
 
-    with open("test.csv", mode="w", encoding= 'utf-8') as csv_file:
+    with open(os.path.join(output_dir, "test.csv"), mode="w", encoding= 'utf-8') as csv_file:
 
         data = {
             'product_page_url': 'product_page_url', 
