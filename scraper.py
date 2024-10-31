@@ -7,35 +7,46 @@ import os
 
 site_to_scrape = 'http://books.toscrape.com/index.html'
 site_prefix = 'http://books.toscrape.com/'
-output_dir = 'C:/00_Scraped_Data/'
+output_dir = 'Scraped_Data/'
+
+session = rq.Session()
+
+def make_dir_category(category):
+    category_dir = output_dir + str(category) + '/'
+    if not os.path.exists(category_dir):
+        os.makedirs(category_dir)
+    return category_dir
+
+
+def get_soup(url):
+    page = session.get(url)
+    if not page.ok:
+        print("Failed to access url page : ", page.raise_for_status())
+        return
+    #page.encoding = 'utf-8'
+    return BeautifulSoup(page.content, 'html.parser')
+
+
+def save_book(thumbnail_url, category):
+    # handles saving the book covers
+    response = session.get(thumbnail_url, stream=True)
+
+    file_name = thumbnail_url
+    file_name = os.path.basename(file_name)
+
+    dir = make_dir_category(category)
+
+    with open(os.path.join(dir, file_name), 'wb') as out_file:
+        shutil.copyfileobj(response.raw, out_file)
 
 
 def get_book_data(url, category):
-    page = rq.get(url)
-    page.encoding = 'utf-8'
-    soup = BeautifulSoup(page.text, 'html.parser', from_encoding= 'utf-8')
+    soup = get_soup(url)
     
     title = soup.find('h1').text
     thumbnail = urljoin(site_prefix, soup.find('img')['src']) 
+    save_book(thumbnail, category)
     print(title)
-    
-    # handles saving the book covers
-    cover_dir = output_dir + 'covers/'
-    if not os.path.exists(cover_dir):
-        os.makedirs(cover_dir)
-    category_dir = cover_dir + category + '/'
-    if not os.path.exists(category_dir):
-        os.makedirs(category_dir)
-    
-    response = rq.get(thumbnail, stream=True)
-
-    file_name = thumbnail
-    file_name = os.path.basename(file_name)
-
-    with open(os.path.join(category_dir, file_name), 'wb') as out_file:
-        shutil.copyfileobj(response.raw, out_file)
-
-    del response
     
     trs = soup.find_all('tr')
     for tr in trs:
@@ -88,8 +99,7 @@ def get_books_from_category(url, category):
     book_datas = []
     
     current_url = url
-    page = rq.get(current_url)
-    soup = BeautifulSoup(page.text, 'html.parser')
+    soup = get_soup(current_url)
     next = soup.find('li', class_ = 'next')
     suf = 'index.html'
     
@@ -102,8 +112,7 @@ def get_books_from_category(url, category):
 
         href = next.find('a')['href']
         current_url = current_url.replace(suf, href)
-        page = rq.get(current_url)
-        soup = BeautifulSoup(page.text, 'html.parser')
+        soup = get_soup(current_url)
         suf = href
         next = soup.find('li', class_ = 'next')
 
@@ -115,31 +124,14 @@ def get_books_from_category(url, category):
     return book_datas
 
 
-if __name__ == "__main__":
+def save_category_to_csv(category):
+    url = site_prefix + category['href']
+    name = category.text.strip()
+    book_datas = get_books_from_category(url, name)
 
-    all_books_datas = []
+    dir = make_dir_category(category)
 
-    page = rq.get(site_to_scrape)
-    soup = BeautifulSoup(page.text, 'html.parser')
-
-    sides = soup.find('div', attrs= {'class': 'side_categories'})
-    categories = sides.find_all('a')
-
-    # To get only books from a single category /!\ this will overwrite existing csv and images at default extract location
-    # all_books_datas.extend(get_books_from_category(
-    #         'http://books.toscrape.com/catalogue/category/books/philosophy_7/index.html', 'Philosophy'))
-
-    # we use len to start from index 1 and skip the "Books" category at index 0
-    for i in range(1, len(categories)):
-        category = categories[i]
-
-        url = site_prefix + category['href']
-        name = category.text.strip()
-        all_books_datas.extend(get_books_from_category(url, name))
-
-    print("book amount : ", len(all_books_datas))
-
-    with open(os.path.join(output_dir, "Book Datas.csv"), mode="w",newline= '', encoding= 'utf-8') as csv_file:
+    with open(os.path.join(dir,"0_", category, " Category Data.csv"), mode="w",newline= '', encoding= 'utf-8') as csv_file:
 
         data = {
             'product_page_url': 'product_page_url', 
@@ -158,4 +150,22 @@ if __name__ == "__main__":
         writer = csv.DictWriter(csv_file, fieldnames= fieldnames, delimiter=';')
         writer.writerow(data)
 
-        writer.writerows(all_books_datas)
+        writer.writerows(book_datas)
+
+    return len(book_datas)
+
+
+if __name__ == "__main__":
+
+    soup = get_soup(site_to_scrape)
+
+    sides = soup.find('div', attrs= {'class': 'side_categories'})
+    categories = sides.find_all('a')
+
+    # we use len to start from index 1 and skip the "Books" category at index 0
+    book_amount = 0
+    for i in range(1, len(categories)):
+        category = categories[i]
+        book_amount += save_category_to_csv(category)
+
+    print("book amount : ", book_amount)
