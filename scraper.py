@@ -12,7 +12,7 @@ output_dir = 'Scraped_Data/'
 session = rq.Session()
 
 def make_dir_category(category):
-    category_dir = output_dir + str(category) + '/'
+    category_dir = output_dir + category + '/'
     if not os.path.exists(category_dir):
         os.makedirs(category_dir)
     return category_dir
@@ -129,9 +129,9 @@ def save_category_to_csv(category):
     name = category.text.strip()
     book_datas = get_books_from_category(url, name)
 
-    dir = make_dir_category(category)
+    dir = make_dir_category(name)
 
-    with open(os.path.join(dir,"0_", category, " Category Data.csv"), mode="w",newline= '', encoding= 'utf-8') as csv_file:
+    with open(os.path.join("{0}0_{1} Category Data.csv".format(dir, name)), mode="w",newline= '', encoding= 'utf-8') as csv_file:
 
         data = {
             'product_page_url': 'product_page_url', 

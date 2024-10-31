@@ -2,4 +2,5 @@
 \env
 .~lock.test.csv#
 *.test.csv
+*
 \Scraped_Data
